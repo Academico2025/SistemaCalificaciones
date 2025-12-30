@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Web App Educativa - Asistencia y Notas</title>
+<script src="https://cdn.sheetjs.com/xlsx-0.20.3/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mammoth@1.11.0/mammoth.browser.min.js"></script>
+<style>
+body { font-family: "Poppins", sans-serif; margin: 0; background: #e3f2fd; color: #333; }
+header { background: #1565c0; color: white; text-align: center; padding: 10px 0; }
+main { padding: 20px; max-width: 1200px; margin: auto; background: #fff; border-radius: 10px; }
+button { background: #1565c0; color: white; border: none; border-radius: 5px; padding: 8px 14px; margin: 5px; cursor: pointer; }
+button:hover { background: #1e88e5; }
+input, select { padding: 6px; border-radius: 5px; border: 1px solid #ccc; margin: 3px; }
+table { border-collapse: collapse; width: 100%; margin-top: 10px; }
+th, td { border: 1px solid #ccc; padding: 5px; text-align: center; }
+th { background: #bbdefb; }
+.hidden { display: none; }
+.weekend { background-color: #ffebee; }
+.encabezado { border: 2px solid #1565c0; padding: 10px; border-radius: 8px; margin-bottom: 15px; }
+.encabezado-grid { display: grid; grid-template-columns: 100px 1fr; gap: 10px; align-items: center; }
+.encabezado img { width: 90px; height: 90px; object-fit: contain; border: 1px solid #ccc; border-radius: 5px; }
+footer { text-align: center; color: #777; padding: 15px; margin-top: 20px; }
+.config-notas { background: #f1f8e9; border: 1px solid #ccc; border-radius: 8px; padding: 10px; margin-bottom: 10px; }
+@media print { input, select, button { display: none !important; } body { background: #fff; } main { box-shadow: none; } }
+</style>
+</head>
+<body>
+<header>
+  <h1>📚 Sistema Educativo Local</h1>
+  <h3>Control de Asistencia y Notas</h3>
+</header>
+
+<main>
+  <nav style="text-align:center;">
+    <button onclick="showSection('asistencia')">🗓️ Asistencia</button>
+    <button onclick="showSection('notas')">🧮 Notas</button>
+  </nav>
+
+  <!-- Encabezado -->
+  <div class="encabezado" id="encabezado">
+    <div class="encabezado-grid">
+      <div>
+        <img id="logo" src="" alt="Logo">
+        <br>
+        <button onclick="document.getElementById('logoInput').click()">📷 Cargar Logo</button>
+        <input type="file" id="logoInput" accept="image/*" style="display:none;">
+      </div>
+      <div>
+        <input id="institucion" placeholder="Institución o CE" style="width:60%;">
+        <label>Código DANE:</label><input id="dane" size="15"><br>
+        <label>Municipio:</label><input id="municipio" size="15">
+        <label>Departamento:</label><input id="departamento" size="15"><br>
+        <label>Grado:</label><input id="grado" size="5">
+        <label>Grupo:</label><input id="grupo" size="5">
+        <label>Asignatura:</label><input id="asignatura" size="10">
+        <label>IHS:</label><input id="ihs" size="3"><br>
+        <label>Profesor(a):</label><input id="profesor" size="20">
+        <label>Periodo:</label><input id="periodo" size="8">
+        <label>Año:</label><input id="anio" type="number" value="2025" min="2000" max="2100">
+        <label>Mes:</label>
+        <select id="mes">
+          <option value="0">Enero</option><option value="1">Febrero</option><option value="2">Marzo</option>
+          <option value="3">Abril</option><option value="4">Mayo</option><option value="5">Junio</option>
+          <option value="6">Julio</option><option value="7">Agosto</option><option value="8">Septiembre</option>
+          <option value="9">Octubre</option><option value="10">Noviembre</option><option value="11">Diciembre</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <!-- Asistencia -->
+  <section id="asistencia">
+    <h2>🗓️ Control de Asistencia</h2>
+    <button onclick="document.getElementById('fileInput').click()">📥 Importar lista (DOCX)</button>
+    <input type="file" id="fileInput" accept=".docx" style="display:none;">
+    <button onclick="generarAsistencia()">🗂️ Generar hoja</button>
+    <button onclick="exportarAsistencia()">📤 Exportar a Excel</button>
+    <button onclick="imprimirAsistencia()">🖨️ Imprimir</button>
+    <div id="tablaAsistencia"></div>
+  </section>
+
+  <!-- Notas -->
+  <section id="notas" class="hidden">
+    <h2>🧮 Hoja de Notas</h2>
+    <div class="config-notas">
+      <label>Procedimental (%): </label><input type="number" id="porcProc" value="50" min="0" max="100">
+      <label>N° Notas: </label><input type="number" id="numProc" value="3" min="1" max="10">
+      <label>Conceptual (%): </label><input type="number" id="porcConc" value="40" min="0" max="100">
+      <label>N° Notas: </label><input type="number" id="numConc" value="3" min="1" max="10">
+      <label>Actitudinal (%): </label><input type="number" id="porcAct" value="10" min="0" max="100">
+      <label>N° Notas: </label><input type="number" id="numAct" value="1" min="1" max="10">
+    </div>
+    <button onclick="generarNotas()">📋 Generar hoja</button>
+    <button onclick="exportarNotas()">📤 Exportar</button>
+    <button onclick="imprimirNotas()">🖨️ Imprimir</button>
+    <div id="tablaNotas"></div>
+  </section>
+</main>
+
+<footer>© 2025 - Web App Educativa Local</footer>
+
+<script>
+let estudiantes = JSON.parse(localStorage.getItem("estudiantes")) || [];
+let logoBase64 = localStorage.getItem("logoBase64") || "";
+if (logoBase64) document.getElementById("logo").src = logoBase64;
+
+// Logo
+document.getElementById("logoInput").addEventListener("change", e => {
+  const reader = new FileReader();
+  reader.onload = ev => {
+    logoBase64 = ev.target.result;
+    document.getElementById("logo").src = logoBase64;
+    localStorage.setItem("logoBase64", logoBase64);
+  };
+  reader.readAsDataURL(e.target.files[0]);
+});
+
+// Encabezado sincronizado
+const campos = ["institucion","dane","municipio","departamento","grado","grupo","asignatura","ihs","profesor","periodo","anio","mes"];
+function guardarEncabezado(){
+  const datos = {};
+  campos.forEach(id => datos[id] = document.getElementById(id).value);
+  localStorage.setItem("encabezado", JSON.stringify(datos));
+}
+function cargarEncabezado(){
+  const d = JSON.parse(localStorage.getItem("encabezado")||"{}");
+  campos.forEach(id => { if(d[id]) document.getElementById(id).value = d[id]; });
+}
+document.querySelectorAll("#encabezado input, #encabezado select").forEach(el => el.addEventListener("input", guardarEncabezado));
+cargarEncabezado();
+
+// Config de notas
+["porcProc","numProc","porcConc","numConc","porcAct","numAct"].forEach(id=>{
+  const el=document.getElementById(id);
+  el.value=localStorage.getItem(id)||el.value;
+  el.addEventListener("input",()=>localStorage.setItem(id,el.value));
+});
+
+// Cambio de sección
+function showSection(id){ document.querySelectorAll("section").forEach(s=>s.classList.add("hidden")); document.getElementById(id).classList.remove("hidden"); }
+
+// Importar lista
+document.getElementById("fileInput").addEventListener("change", e=>{
+  const reader=new FileReader();
+  reader.onload=ev=>{
+    mammoth.extractRawText({arrayBuffer:ev.target.result}).then(res=>{
+      estudiantes=res.value.split("\n").map(l=>l.trim()).filter(l=>l).map(n=>({nombre:n}));
+      localStorage.setItem("estudiantes",JSON.stringify(estudiantes));
+      alert(`✅ ${estudiantes.length} estudiantes importados`);
+    });
+  }; reader.readAsArrayBuffer(e.target.files[0]);
+});
+
+// Asistencia
+function generarAsistencia(){
+  if(!estudiantes.length){alert("Importa lista de estudiantes");return;}
+  const d=JSON.parse(localStorage.getItem("encabezado")||"{}");
+  const y=parseInt(d.anio||2025), m=parseInt(d.mes||0), dias=new Date(y,m+1,0).getDate();
+  let h=encabezadoHTML(d)+`<table><tr><th>Estudiante</th>`;
+  for(let i=1;i<=dias;i++){let dt=new Date(y,m,i),dw=['D','L','M','X','J','V','S'][dt.getDay()],wk=(dw=='D'||dw=='S')?'class="weekend"':'';h+=`<th ${wk}>${i}<br>${dw}</th>`;}
+  h+=`</tr>`;
+  estudiantes.forEach(e=>{h+=`<tr><td>${e.nombre}</td>`;for(let i=1;i<=dias;i++){let dt=new Date(y,m,i),wk=(dt.getDay()==0||dt.getDay()==6)?'class="weekend"':'';h+=`<td contenteditable ${wk}></td>`;}h+=`</tr>`;});
+  h+=`</table>`;
+  document.getElementById("tablaAsistencia").innerHTML=h;
+}
+
+// Exportar solo tabla (sin encabezado)
+function exportarAsistencia(){
+  const tabla=document.querySelector("#tablaAsistencia table");
+  if(!tabla){alert("Primero genera la hoja de asistencia.");return;}
+  const wb=XLSX.utils.table_to_book(tabla,{sheet:"Asistencia"});
+  XLSX.writeFile(wb,"Asistencia.xlsx");
+}
+
+// Notas
+function generarNotas(){
+  const totalPorc = +porcProc.value + +porcConc.value + +porcAct.value;
+  if (totalPorc !== 100) { alert("⚠️ Los porcentajes deben sumar exactamente 100%."); return; }
+  if(!estudiantes.length){alert("Importa lista de estudiantes");return;}
+
+  const d=JSON.parse(localStorage.getItem("encabezado")||"{}");
+  const np=+numProc.value, nc=+numConc.value, na=+numAct.value;
+  const pp=+porcProc.value/100, pc=+porcConc.value/100, pa=+porcAct.value/100;
+
+  let h=`<h3 style='text-align:center;'>CONTROL Y EVALUACIÓN DEL DESEMPEÑO ESTUDIANTIL</h3><table>`;
+  h+=`<tr><th>Nº</th><th>Apellidos y Nombres</th><th colspan="3">Inasistencia</th>`;
+  h+=`<th colspan="${np}">Procedimental (${pp*100}%)</th>`;
+  h+=`<th colspan="${nc}">Conceptual (${pc*100}%)</th>`;
+  h+=`<th colspan="${na}">Actitudinal (${pa*100}%)</th><th>Nota Definitiva</th></tr>`;
+
+  h+=`<tr><th></th><th></th><th>J</th><th>SJ</th><th>Total</th>`;
+  for(let i=1;i<=np;i++)h+=`<th>N${i}</th>`;
+  for(let i=1;i<=nc;i++)h+=`<th>N${i}</th>`;
+  for(let i=1;i<=na;i++)h+=`<th>N${i}</th>`;
+  h+=`<th>Est.</th></tr>`;
+
+  estudiantes.forEach((e,i)=>{
+    h+=`<tr><td>${i+1}</td><td>${e.nombre}</td>
+    <td contenteditable></td><td contenteditable></td><td contenteditable></td>`;
+    for(let i=0;i<np+nc+na;i++)h+=`<td contenteditable oninput="calcDef(this)"></td>`;
+    h+=`<td class='promedio'></td></tr>`;
+  });
+  h+=`</table>`;
+  document.getElementById("tablaNotas").innerHTML=encabezadoHTML(d)+h;
+}
+
+// Exportar notas sin encabezado
+function exportarNotas(){
+  const tabla=document.querySelector("#tablaNotas table");
+  if(!tabla){alert("Primero genera la hoja de notas.");return;}
+  const wb=XLSX.utils.table_to_book(tabla,{sheet:"Notas"});
+  XLSX.writeFile(wb,"Notas.xlsx");
+}
+
+// Calcular nota
+function calcDef(td){
+  const np=+numProc.value, nc=+numConc.value, na=+numAct.value;
+  const pp=+porcProc.value/100, pc=+porcConc.value/100, pa=+porcAct.value/100;
+  const f=td.parentElement;
+  const vals=Array.from(f.querySelectorAll("td[contenteditable]")).map(x=>parseFloat(x.innerText)||0);
+  const pro=avg(vals.slice(3,3+np)), con=avg(vals.slice(3+np,3+np+nc)), act=avg(vals.slice(3+np+nc,3+np+nc+na));
+  const total=(pro*pp)+(con*pc)+(act*pa);
+  f.querySelector(".promedio").innerText=total?total.toFixed(2):"";
+}
+function avg(a){return a.length?a.reduce((x,y)=>x+y,0)/a.length:0;}
+
+// Imprimir (un solo encabezado)
+function imprimirAsistencia(){
+  if(!document.getElementById("tablaAsistencia").innerHTML.trim())return alert("Genera primero");
+  printHTML(document.getElementById("tablaAsistencia").innerHTML);
+}
+function imprimirNotas(){
+  if(!document.getElementById("tablaNotas").innerHTML.trim())return alert("Genera primero");
+  printHTML(document.getElementById("tablaNotas").innerHTML);
+}
+function printHTML(content){
+  const w = window.open("", "_blank");
+  w.document.write(`<html><head><style>
+  table{width:100%;border-collapse:collapse;}th,td{border:1px solid #000;padding:4px;text-align:center;}th{background:#e3f2fd;}
+  img{width:80px;height:80px;object-fit:contain;}
+  </style></head><body>${content}
+  <p style='text-align:right;margin-top:40px;'>Firma del docente: ____________________</p>
+  </body></html>`);
+  w.document.close();
+  w.print();
+}
+
+// Encabezado institucional
+function encabezadoHTML(d){
+  const logo=logoBase64?`<img src='${logoBase64}' style='float:left;margin-right:10px;'>`:"";
+  const m=["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"][d.mes||0];
+  return `<div style='border:2px solid #1565c0;padding:8px;border-radius:8px;margin-bottom:10px;'>${logo}
+  <div style='text-align:center;'>
+  <b>${d.institucion||""}</b><br>Código DANE: ${d.dane||""} — Municipio: ${d.municipio||""} — Departamento: ${d.departamento||""}<br>
+  Grado: ${d.grado||""} — Grupo: ${d.grupo||""} — Asignatura: ${d.asignatura||""} — IHS: ${d.ihs||""}<br>
+  Profesor(a): ${d.profesor||""} — Periodo: ${d.periodo||""} — Año: ${d.anio||""} — Mes: ${m}</div></div>`;
+}
+</script>
+</body>
+</html>
