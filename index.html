@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Web App Educativa - Asistencia y Notas</title>
-<script src="https://cdn.sheetjs.com/xlsx-0.20.3/xlsx.full.min.js"></script>
+<script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/mammoth@1.11.0/mammoth.browser.min.js"></script>
 <style>
 body { font-family: "Poppins", sans-serif; margin: 0; background: #e3f2fd; color: #333; }
@@ -58,7 +58,7 @@ footer { text-align: center; color: #777; padding: 15px; margin-top: 20px; }
         <label>IHS:</label><input id="ihs" size="3"><br>
         <label>Profesor(a):</label><input id="profesor" size="20">
         <label>Periodo:</label><input id="periodo" size="8">
-        <label>Año:</label><input id="anio" type="number" value="2025" min="2000" max="2100">
+        <label>Año:</label><input id="anio" type="number" value="2026" min="2000" max="2100">
         <label>Mes:</label>
         <select id="mes">
           <option value="0">Enero</option><option value="1">Febrero</option><option value="2">Marzo</option>
@@ -157,9 +157,11 @@ document.getElementById("fileInput").addEventListener("change", e=>{
 function generarAsistencia(){
   if(!estudiantes.length){alert("Importa lista de estudiantes");return;}
   const d=JSON.parse(localStorage.getItem("encabezado")||"{}");
-  const y=parseInt(d.anio||2025), m=parseInt(d.mes||0), dias=new Date(y,m+1,0).getDate();
-  let h=encabezadoHTML(d)+`<table><tr><th>Estudiante</th>`;
-  for(let i=1;i<=dias;i++){let dt=new Date(y,m,i),dw=['D','L','M','X','J','V','S'][dt.getDay()],wk=(dw=='D'||dw=='S')?'class="weekend"':'';h+=`<th ${wk}>${i}<br>${dw}</th>`;}
+  const y=parseInt(d.anio||2026), m=parseInt(d.mes||0), dias=new Date(y,m+1,0).getDate();
+  let h=encabezadoHTML(d)+`<table><tr><th rowspan="2">Estudiante</th>`;
+  for(let i=1;i<=dias;i++){let dt=new Date(y,m,i),dw=['D','L','M','X','J','V','S'][dt.getDay()],wk=(dw=='D'||dw=='S')?'class="weekend"':'';h+=`<th ${wk}>${i}</th>`;}
+  h+=`</tr><tr>`;
+  for(let i=1;i<=dias;i++){let dt=new Date(y,m,i),dw=['D','L','M','X','J','V','S'][dt.getDay()],wk=(dw=='D'||dw=='S')?'class="weekend"':'';h+=`<th ${wk}>${dw}</th>`;}
   h+=`</tr>`;
   estudiantes.forEach(e=>{h+=`<tr><td>${e.nombre}</td>`;for(let i=1;i<=dias;i++){let dt=new Date(y,m,i),wk=(dt.getDay()==0||dt.getDay()==6)?'class="weekend"':'';h+=`<td contenteditable ${wk}></td>`;}h+=`</tr>`;});
   h+=`</table>`;
@@ -170,8 +172,36 @@ function generarAsistencia(){
 function exportarAsistencia(){
   const tabla=document.querySelector("#tablaAsistencia table");
   if(!tabla){alert("Primero genera la hoja de asistencia.");return;}
-  const wb=XLSX.utils.table_to_book(tabla,{sheet:"Asistencia"});
-  XLSX.writeFile(wb,"Asistencia.xlsx");
+  const d=JSON.parse(localStorage.getItem("encabezado")||"{}");
+  const contenido=encabezadoHTML(d)+tabla.outerHTML;
+
+  const plantilla=`<!DOCTYPE html>
+<html xmlns:o="urn:schemas-microsoft-com:office:office"
+      xmlns:x="urn:schemas-microsoft-com:office:excel"
+      xmlns="http://www.w3.org/TR/REC-html40">
+<head>
+<meta charset="UTF-8">
+<!--[if gte mso 9]><xml><x:ExcelWorkbook><x:ExcelWorksheets><x:ExcelWorksheet>
+<x:Name>Asistencia</x:Name>
+<x:WorksheetOptions><x:DisplayGridlines/></x:WorksheetOptions>
+</x:ExcelWorksheet></x:ExcelWorksheets></x:ExcelWorkbook></xml><![endif]-->
+<style>
+  table{border-collapse:collapse;}
+  td,th{border:1px solid #999;padding:4px;}
+  img{max-width:80px;max-height:80px;}
+</style>
+</head>
+<body>${contenido}</body>
+</html>`;
+
+  const blob=new Blob([plantilla],{type:"application/vnd.ms-excel;charset=utf-8"});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement("a");
+  a.href=url; a.download="Asistencia.xls";
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
 }
 
 // Notas
@@ -210,8 +240,36 @@ function generarNotas(){
 function exportarNotas(){
   const tabla=document.querySelector("#tablaNotas table");
   if(!tabla){alert("Primero genera la hoja de notas.");return;}
-  const wb=XLSX.utils.table_to_book(tabla,{sheet:"Notas"});
-  XLSX.writeFile(wb,"Notas.xlsx");
+  const d=JSON.parse(localStorage.getItem("encabezado")||"{}");
+  const contenido=encabezadoHTML(d)+tabla.outerHTML;
+
+  const plantilla=`<!DOCTYPE html>
+<html xmlns:o="urn:schemas-microsoft-com:office:office"
+      xmlns:x="urn:schemas-microsoft-com:office:excel"
+      xmlns="http://www.w3.org/TR/REC-html40">
+<head>
+<meta charset="UTF-8">
+<!--[if gte mso 9]><xml><x:ExcelWorkbook><x:ExcelWorksheets><x:ExcelWorksheet>
+<x:Name>Notas</x:Name>
+<x:WorksheetOptions><x:DisplayGridlines/></x:WorksheetOptions>
+</x:ExcelWorksheet></x:ExcelWorksheets></x:ExcelWorkbook></xml><![endif]-->
+<style>
+  table{border-collapse:collapse;}
+  td,th{border:1px solid #999;padding:4px;}
+  img{max-width:80px;max-height:80px;}
+</style>
+</head>
+<body>${contenido}</body>
+</html>`;
+
+  const blob=new Blob([plantilla],{type:"application/vnd.ms-excel;charset=utf-8"});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement("a");
+  a.href=url; a.download="Notas.xls";
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
 }
 
 // Calcular nota
